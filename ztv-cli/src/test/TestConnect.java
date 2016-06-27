@@ -4,16 +4,15 @@ import static org.junit.Assert.*;
 import org.junit.Test;
 import com.ning.http.client.*;
 
+import ztv.core.TestConfig;
+
 public class TestConnect {
 	AsyncHttpClient client = new AsyncHttpClient();
-	String url = "https://codechallengetest.zendesk.com/api/v2/tickets.json";
-	String user = "joon_shiesh@hotmail.com";
-	String pwd = "Jun19890206!";
 	
 	Realm realm = new Realm.RealmBuilder()
 			.setScheme(Realm.AuthScheme.BASIC)
-			.setPrincipal(user)
-			.setPassword(pwd)
+			.setPrincipal(TestConfig.user)
+			.setPassword(TestConfig.pwd)
 			.setUsePreemptiveAuth(true)
 			.build();
 	
@@ -28,7 +27,7 @@ public class TestConnect {
 		try {
 			RequestBuilder builder = new RequestBuilder("GET");
 			builder.setRealm(realm);
-			builder.setUrl(url);
+			builder.setUrl(TestConfig.url);
 			builder.setHeader("Content-Type", "application/json; charset=UTF-8");
 			Request request = builder.build();
 			
