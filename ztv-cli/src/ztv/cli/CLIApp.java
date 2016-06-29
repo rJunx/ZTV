@@ -1,8 +1,11 @@
 package ztv.cli;
 
 import java.util.ArrayList;
+import java.util.List;
+import java.util.Scanner;
 
 import ztv.core.IFetcher;
+import ztv.core.PageController;
 import ztv.core.TestConfig;
 import ztv.core.Ticket;
 
@@ -10,43 +13,161 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 public class CLIApp {
-	static protected ArrayList<Ticket> ticketPool = new ArrayList<Ticket>();
+	private Scanner scanner = new Scanner(System.in);
 
-	public void showTicket() {
-		
+	private int fetchInt() {
+		do {
+			try {
+				System.out.print("Input: ");
+				int value = scanner.nextInt();
+				return value;
+			} catch (Exception e){
+				System.out.println("Invalid Input.");
+			}	
+		} while(true);
 	}
 	
-	public static void main(String[] args) {
-		// TODO Auto-generated method stub
-		IFetcher fetcher = new HttpClientFetcher();
+	private List<Ticket> getTickets() {
+		ArrayList<Ticket> tickets = null;
 		
-		try {
+        try {
+    		IFetcher fetcher = new HttpClientFetcher();
 			fetcher.start(TestConfig.url, TestConfig.user, TestConfig.pwd);
-			System.out.println(fetcher.getText());
-			
 			JSONObject json = new JSONObject(fetcher.getText());
 			
 			JSONArray array = (JSONArray) json.get("tickets");
 			
+			tickets = new ArrayList<Ticket>();
 			for (int i = 0; i < array.length(); i++) {
-				JSONObject item = (JSONObject) array.get(i);
-				
 				Ticket t = new Ticket();
-				t.setSubject((String)item.get("subject"));
-				t.setDescription((String)item.get("description"));
-				t.setDate((String)item.get("created_at"));
-				
-				ticketPool.add(t);
+				fillTicket(t, (JSONObject) array.get(i));
+				tickets.add(t);
 			}
+        } catch(Exception e) {
+        	System.out.println(e);
+        }
+        
+        return tickets;
+	}
+	
+	private Ticket getTicket(int id) {
+		Ticket selected = null;
+        try {
+    		IFetcher fetcher = new HttpClientFetcher();
+    		String url = String.format("https://codechallengetest.zendesk.com/api/v2/tickets/%d.json", id);
+			fetcher.start(url, TestConfig.user, TestConfig.pwd);
+			JSONObject json = new JSONObject(fetcher.getText());
 			
-			for (int i = 0; i < ticketPool.size(); i++) {
-				Ticket t = ticketPool.get(i);
-				System.out.println(String.format("%s%s", t.getSubject(), t.getCreated_at()));
+			if (json.has("error")) {
+				handleError((String)json.get("error"));
+			} else {
+				selected = new Ticket();
+				fillTicket(selected, (JSONObject)json.get("ticket"));
 			}
+        } catch(Exception e) {
+        	handleError(e);
+        }
+        
+    	return selected;
+	}
+	
+	private void fillTicket(Ticket t, JSONObject item) {
+		t.setSubject((String)item.get("subject"));
+		t.setDescription((String)item.get("description"));
+		t.setDate((String)item.get("created_at"));
+	}
+	
+	private void showPage(PageController<Ticket> pc) {
+        String nextLine;
+        List<Ticket> pageList = null;
+        
+    	if (pc.hasNext())
+    		pageList = pc.next();
+        
+		do {
+            nextLine = scanner.nextLine();
+            if ("q".equals(nextLine)) {
+                break;
+            } else if ("a".equals(nextLine)) {
+            	if (pc.hasPrevious()) {
+            		pageList = pc.previous();
+            	}
+            } else if ("d".equals(nextLine)) {
+            	if (pc.hasNext())
+            		pageList = pc.next();
+            }
+            
+            if (pageList != null) {
+            	for (int i = 0; i < pageList.size(); i++) {
+            		Ticket t = pageList.get(i);
+            		System.out.println(t.getSubject());
+            	}
+            }
+            
+            System.out.println("Page: " + pc.getCurrentPage() + "/" + pc.getTotalPage());
+            System.out.println("Input q back to menu; Input a to next page; Input d to previous page;");
+		} while(true);
+	}
+	
+	private void showAllTickets() {
+        PageController<Ticket> pc = new PageController<Ticket>();
+        List<Ticket> tickets = getTickets();
+        if (tickets != null) {
+    		pc.bind(tickets);	
+    		showPage(pc);
+        }
+	}
+	
+	private void ShowATicket() {
+		System.out.print("Ticket Id ");
+		int id = fetchInt();
+		Ticket t = getTicket(id);
+		if (t == null) {
+			return;
 		}
-		catch (Exception e) {
-			System.out.println(e);
-		}
+		
+		System.out.println(t.getSubject());
+	}
+	
+	private void handleError(String msg) {
+		System.out.println(msg);
+	}
+	
+	private void handleError(Exception e) {
+    	System.out.println(e.getMessage());
+	}
+	
+	private void menu() {
+		System.out.println("1. Show All Tickets");
+		System.out.println("2. Show a Ticket");
+		System.out.println("3. Exit");
+	}
+	
+	public void run() {
+		do {
+			menu();
+			int option = fetchInt();
+
+			switch(option) {
+			case 1:
+				showAllTickets();
+				break;
+			case 2:
+				ShowATicket();
+				break;
+			case 3:
+				System.out.println("Thanks for using. Bye.");
+				return;
+			default:
+				System.out.println("Out of service.");
+			}
+		} while(true);
+	}
+	
+	public static void main(String[] args) {
+		// TODO Auto-generated method stub
+		CLIApp app = new CLIApp();
+		app.run();
 	}
 
 }

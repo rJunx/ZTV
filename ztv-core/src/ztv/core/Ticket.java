@@ -38,5 +38,5 @@ public class Ticket {
   
     public void setDescription(String description) {  
         this.description = description;  
-    }  
+    }
 }
