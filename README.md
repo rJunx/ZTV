@@ -8,7 +8,7 @@ ztv-cli : cli application
 
 ztv-gae : google app engine application
 
-Google app engine require Java se 7. So the ztv-core and ztv-gae depense on Java 7.
+Google app engine require Java se 7. So the ztv-core and ztv-gae depend on Java 7.
 
 All the project are based on eclipse mars.
 
