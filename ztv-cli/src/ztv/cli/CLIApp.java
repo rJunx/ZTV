@@ -32,7 +32,7 @@ public class CLIApp {
 		
         try {
     		IFetcher fetcher = new HttpClientFetcher();
-			fetcher.start(TestConfig.url, TestConfig.user, TestConfig.pwd);
+			fetcher.start(TestConfig.url + "tickets.json", TestConfig.user, TestConfig.pwd);
 			JSONObject json = new JSONObject(fetcher.getText());
 			
 			JSONArray array = (JSONArray) json.get("tickets");
@@ -54,7 +54,7 @@ public class CLIApp {
 		Ticket selected = null;
         try {
     		IFetcher fetcher = new HttpClientFetcher();
-    		String url = String.format("https://codechallengetest.zendesk.com/api/v2/tickets/%d.json", id);
+    		String url = String.format(TestConfig.url + "tickets/%d.json", id);
 			fetcher.start(url, TestConfig.user, TestConfig.pwd);
 			JSONObject json = new JSONObject(fetcher.getText());
 			
@@ -72,9 +72,9 @@ public class CLIApp {
 	}
 	
 	private void fillTicket(Ticket t, JSONObject item) {
-		t.setSubject((String)item.get("subject"));
-		t.setDescription((String)item.get("description"));
-		t.setDate((String)item.get("created_at"));
+		t.setSubject(item.getString("subject"));
+		t.setDescription(item.getString("description"));
+		t.setDate(item.getString("created_at"));
 	}
 	
 	private void showPage(PageController<Ticket> pc) {
@@ -83,6 +83,8 @@ public class CLIApp {
         
     	if (pc.hasNext())
     		pageList = pc.next();
+    	
+    	String fm = "%-50s%-10s";
         
 		do {
             nextLine = scanner.nextLine();
@@ -98,14 +100,15 @@ public class CLIApp {
             }
             
             if (pageList != null) {
+            	System.out.println(String.format(fm, "Subject", "Created Date"));
             	for (int i = 0; i < pageList.size(); i++) {
             		Ticket t = pageList.get(i);
-            		System.out.println(t.getSubject());
+            		System.out.println(String.format(fm, t.getSubject(), t.getCreated_at()));
             	}
+                System.out.println("Page: " + pc.getCurrentPage() + "/" + pc.getTotalPage());
+                System.out.println("Input q back to menu; Input a to next page; Input d to previous page;");
             }
             
-            System.out.println("Page: " + pc.getCurrentPage() + "/" + pc.getTotalPage());
-            System.out.println("Input q back to menu; Input a to next page; Input d to previous page;");
 		} while(true);
 	}
 	
@@ -126,7 +129,8 @@ public class CLIApp {
 			return;
 		}
 		
-		System.out.println(t.getSubject());
+		System.out.println("Subject : " + t.getSubject());
+		System.out.println("Created Date : " + t.getCreated_at());
 	}
 	
 	private void handleError(String msg) {
@@ -138,6 +142,8 @@ public class CLIApp {
 	}
 	
 	private void menu() {
+		System.out.println();
+		System.out.println("Weclome to Zendesk Ticket Viewer");
 		System.out.println("1. Show All Tickets");
 		System.out.println("2. Show a Ticket");
 		System.out.println("3. Exit");
